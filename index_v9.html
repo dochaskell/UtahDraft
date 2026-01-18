@@ -1,0 +1,1206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Valorant Veto + Side Simulator (Boise State vs Utah)</title>
+  <style>
+    :root{
+      --bg:#0b0f17;
+      --panel:#121a26;
+      --panel2:#0f1621;
+      --text:#e8eefc;
+      --muted:#a9b7d1;
+      --accent:#7aa2ff;
+      --good:#46d39a;
+      --warn:#ffcc66;
+      --bad:#ff6b6b;
+      --border:rgba(255,255,255,.08);
+      --shadow: 0 12px 32px rgba(0,0,0,.35);
+      --radius:14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background: radial-gradient(1200px 800px at 18% 12%, rgba(122,162,255,.12), transparent 55%),
+                  radial-gradient(1200px 800px at 82% 22%, rgba(70,211,154,.08), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+      font-family:var(--sans);
+      line-height:1.35;
+    }
+    header{
+      padding:22px 18px 14px;
+      max-width:1200px;
+      margin:0 auto;
+    }
+    h1{
+      margin:0 0 6px;
+      font-size:20px;
+      letter-spacing:.2px;
+      font-weight:700;
+    }
+    .sub{
+      color:var(--muted);
+      font-size:13px;
+      max-width:920px;
+    }
+    main{
+      max-width:1200px;
+      margin:0 auto;
+      padding:10px 18px 26px;
+      display:grid;
+      grid-template-columns: minmax(0,360px) minmax(0,1fr);
+      gap:14px;
+    }
+    @media (max-width: 980px){
+      main{grid-template-columns:1fr}
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+    .card .hd{
+      padding:12px 14px 10px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .card .hd .title{
+      font-weight:650;
+      font-size:14px;
+      letter-spacing:.2px;
+    }
+    .card .bd{
+      padding:12px 14px 14px;
+    }
+    .row{display:flex; gap:10px; flex-wrap:wrap}
+    label{
+      font-size:12px;
+      color:var(--muted);
+      display:block;
+      margin-bottom:6px;
+    }
+    select, button, input[type="checkbox"]{
+      font-family:inherit;
+      font-size:14px;
+    }
+    select, button{
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: rgba(10,14,22,.55);
+      color:var(--text);
+      padding:10px 12px;
+      outline:none;
+    }
+    select{min-width: 170px; max-width: 100%}
+    button{
+      cursor:pointer;
+      transition: transform .03s ease, border-color .2s ease, background .2s ease;
+      font-weight:650;
+    }
+    button:hover{border-color: rgba(122,162,255,.45)}
+    button:active{transform: translateY(1px)}
+    button.primary{
+      background: linear-gradient(180deg, rgba(122,162,255,.28), rgba(122,162,255,.12));
+      border-color: rgba(122,162,255,.38);
+    }
+    button.ghost{
+      background: rgba(10,14,22,.35);
+    }
+    button.danger{
+      background: linear-gradient(180deg, rgba(255,107,107,.24), rgba(255,107,107,.10));
+      border-color: rgba(255,107,107,.35);
+    }
+    .hint{
+      font-size:12px;
+      color:var(--muted);
+      margin-top:10px;
+    }
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    @media (max-width:980px){ .grid2{grid-template-columns:1fr} }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.18);
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .pill strong{color:var(--text); font-weight:700}
+    .mono{font-family:var(--mono)}
+    .maplist{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:10px;
+    }
+    .map{
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.18);
+      border-radius:999px;
+      padding:7px 10px;
+      font-size:12px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .map:hover{border-color: rgba(122,162,255,.35)}
+    .map.disabled{
+      opacity:.35;
+      cursor:not-allowed;
+      text-decoration:line-through;
+    }
+    .map.picked{
+      border-color: rgba(70,211,154,.42);
+      background: rgba(70,211,154,.12);
+      color: var(--text);
+    }
+    .map.banned{
+      border-color: rgba(255,107,107,.42);
+      background: rgba(255,107,107,.10);
+      color: var(--text);
+      text-decoration:line-through;
+    }
+
+    .log{
+      padding:10px 12px;
+      border-radius:12px;
+      background: rgba(0,0,0,.22);
+      border:1px solid var(--border);
+      max-height: 380px;
+      overflow:auto;
+      font-family: var(--mono);
+      font-size:12px;
+      color: rgba(232,238,252,.90);
+      line-height:1.4;
+    }
+    .log .t{color:var(--muted)}
+    .section{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .stepbox{
+      background: rgba(0,0,0,.18);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px 12px;
+    }
+    .stepname{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:6px;
+    }
+    .stepname .k{font-weight:700;font-size:13px}
+    .stepname .v{font-size:12px;color:var(--muted)}
+    .controls{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .small{
+      font-size:12px;
+      color:var(--muted);
+    }
+    .sidepick{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+    .sidebtn{
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid var(--border);
+      background: rgba(10,14,22,.40);
+      cursor:pointer;
+    }
+    .sidebtn.on{
+      border-color: rgba(122,162,255,.48);
+      background: rgba(122,162,255,.16);
+    }
+    .score{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    .scorebox{
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px 12px;
+      background: rgba(0,0,0,.18);
+    }
+    .scorebox .n{font-size:12px;color:var(--muted)}
+    .scorebox .v{font-size:20px;font-weight:800;margin-top:2px}
+    .win{
+      color:var(--good);
+      font-weight:800;
+    }
+    .lose{
+      color:var(--bad);
+      font-weight:800;
+    }
+    .tie{
+      color:var(--warn);
+      font-weight:800;
+    }
+    .hr{
+      height:1px;
+      background: var(--border);
+      margin:12px 0;
+    }
+    .note{
+      font-size:12px;
+      color:var(--muted);
+      margin-top:10px;
+    }
+    .kbd{
+      font-family:var(--mono);
+      border:1px solid var(--border);
+      border-bottom-color: rgba(255,255,255,.14);
+      background: rgba(0,0,0,.22);
+      padding:2px 6px;
+      border-radius:8px;
+      font-size:11px;
+      color: rgba(232,238,252,.92);
+    }
+  
+    /* ---- Layout safety fixes (prevent cross-column overflow) ---- */
+    main { grid-template-columns: minmax(0,360px) minmax(0,1fr); }
+    main > * { min-width: 0; }
+    .card, .hd, .bd, .section, .stepbox, .scorebox, .grid2 > * { min-width: 0; }
+    .sub, .hint, .note, .small, label, .scorebox .v, .scorebox .n, #summary, .log {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      white-space: normal;
+    }
+    select { max-width: 100%; }
+
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Pick/Ban/Side Simulator: Boise State vs Utah</h1>
+    <div class="sub">
+      Self-contained veto simulator with baked-in team preferences and map results. Choose who you want to be, veto maps, select sides, and the simulator declares a winner at the end.
+      Map pool is fixed to: <span class="mono">Abyss, Breeze, Bind, Corrode, Haven, Pearl, Split</span>.
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="hd">
+        <div class="title">Setup</div>
+        <span class="pill"><strong class="mono">BO3</strong><span class="t"> · 7-map pool</span></span>
+      </div>
+      <div class="bd section">
+        <div>
+          <label for="youTeam">You are</label>
+          <select id="youTeam">
+            <option value="Boise">Boise State</option>
+            <option value="Utah">Utah</option>
+          </select>
+        </div>
+
+        <div class="grid2">
+          <div>
+            <label for="coinPref">Coin flip behavior</label>
+            <select id="coinPref">
+              <option value="random">Random coin flip (recommended)</option>
+              <option value="you">Force you win coin flip</option>
+              <option value="them">Force opponent win coin flip</option>
+            </select>
+            <div class="hint">Coin flip winner chooses whether to ban first or pick side-choice privilege for decider (simulated as ban-first by default).</div>
+          </div>
+          <div>
+            <label for="banFirstChoice">If you win coin flip, you choose</label>
+            <select id="banFirstChoice">
+              <option value="banfirst">Ban first</option>
+              <option value="bansecond">Ban second</option>
+            </select>
+            <div class="hint">This sets the veto order. You can still play freely after.</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <button id="startBtn" class="primary">Start new veto</button>
+          <button id="autoBtn" class="ghost">Auto-complete (both teams)</button>
+          <button id="resetBtn" class="danger">Reset</button>
+          <button id="copyDbgBtn" class="ghost">Copy Debug Log</button>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="score">
+          <div class="scorebox">
+            <div class="n">Current step</div>
+            <div class="v" id="stepLabel">Not started</div>
+          </div>
+          <div class="scorebox">
+            <div class="n">Coin flip winner</div>
+            <div class="v" id="coinLabel">—</div>
+          </div>
+        </div>
+
+        <div class="note">
+          Tips: Click a map chip to perform the required action. Use <span class="kbd">Auto-complete</span> to see what the baked-in logic would do end-to-end.
+        <div style="margin-top:10px;">
+  <label class="small" for="dbgBox">Debug log (auto)</label>
+  <textarea id="dbgBox" class="log" style="width:100%;max-height:140px;display:none;"></textarea>
+</div>
+</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="hd">
+        <div class="title">Veto Board</div>
+        <div class="pill"><strong>Click maps</strong><span class="t"> · action-driven</span></div>
+      </div>
+      <div class="bd section">
+        <div class="stepbox">
+          <div class="stepname">
+            <div class="k">Available maps</div>
+            <div class="v" id="poolHint">Start a veto to begin</div>
+          </div>
+          <div class="maplist" id="mapList"></div>
+          <div class="small" id="actionHint"></div>
+        </div>
+
+        <div class="grid2">
+          <div class="stepbox">
+            <div class="stepname">
+              <div class="k">Series summary</div>
+              <div class="v">Maps and sides</div>
+            </div>
+            <div id="summary" class="small">—</div>
+          </div>
+
+          <div class="stepbox">
+            <div class="stepname">
+              <div class="k">Log</div>
+              <div class="v">Veto history</div>
+            </div>
+            <div class="log" id="log"></div>
+          </div>
+        </div>
+
+        <div class="stepbox">
+          <div class="stepname">
+            <div class="k">Outcome</div>
+            <div class="v">Declared at conclusion</div>
+          </div>
+          <div id="outcome" class="small">Complete the veto to declare a winner.</div>
+        <div style="margin-top:10px;">
+  <label class="small" for="dbgBox">Debug log (auto)</label>
+  <textarea id="dbgBox" class="log" style="width:100%;max-height:140px;display:none;"></textarea>
+</div>
+</div>
+      </div>
+    </section>
+  </main>
+
+<script>
+(() => {
+  // -----------------------------
+  // Data baked in from user input
+  // -----------------------------
+  const MAPS = ["Abyss","Breeze","Bind","Corrode","Haven","Pearl","Split"];
+
+  // Boise preference list provided (1 best ... 7 worst)
+  const boisePrefRank = {
+    "Corrode":1,     "Abyss":2,     "Split":3,     "Pearl":4,     "Ascent":5,     "Icebox":6,     "Sunset":7,     "Breeze":8
+  };
+
+  // Utah tendencies inferred from pasted veto history:
+  // - Primary comfort: Corrode
+  // - Secondary: Abyss
+  // - Avoids: Sunset (not in pool), Haven sometimes banned, Split sometimes banned, Bind matchup dependent
+  // We'll encode as a preference ranking for picking, plus ban priorities.
+  const utahPickRank = {
+    "Corrode":1,     "Abyss":2,     "Ascent":3,     "Pearl":4,     "Split":5,     "Icebox":6,     "Sunset":7,     "Breeze":8
+  };
+  // Utah ban priorities (from history + common sense with your pool)
+  const utahBanRank = {
+    "Breeze":1,     "Icebox":2,     "Sunset":3,     "Split":4,     "Pearl":5,     "Ascent":6,     "Abyss":7,     "Corrode":8
+  };
+
+  // Boise ban priorities (derived from Boise preference and earlier discussion)
+  const boiseBanRank = {
+    "Breeze":1,     "Sunset":2,     "Icebox":3,     "Ascent":4,     "Pearl":5,     "Split":6,     "Abyss":7,     "Corrode":8
+  };
+
+  // Map results provided (wins/losses). Missing => unknown.
+  const results = {
+    Boise: {
+      "Corrode": {w:4,l:0},
+      "Abyss": {w:2,l:1},
+      "Bind": {w:4,l:1},
+      "Haven": {w:2,l:0},
+      "Split": {w:1,l:0},
+    },
+    Utah: {
+      "Abyss": {w:2,l:1},
+      "Haven": {w:2,l:1},
+      "Bind": {w:1,l:1},
+      "Corrode": {w:2,l:2},
+      "Split": {w:1,l:0},
+    }
+  };
+
+  // Side impact is modest; map picker chooses side.
+  // We'll model:
+  // - If a team chooses a side (Attack/Defense) on their pick, they get a small boost.
+  // - On decider, side choice to the team that did NOT win coin flip -> small boost.
+  const SIDE_BONUS = 0.02; // 2% win probability bonus
+
+  // Base prior when map is unknown or no results: 0.50
+  function winRate(team, map){
+    const r = results[team][map];
+    if(!r) return null;
+    const n = r.w + r.l;
+    if(n <= 0) return null;
+    return r.w / n;
+  }
+
+  // Blend small-sample toward 0.50 to avoid overconfidence.
+  // weight = n / (n + k)
+  const SHRINK_K = 6;
+  function shrunkWinProb(team, map){
+    const r = results[team][map];
+    if(!r) return 0.50;
+    const n = r.w + r.l;
+    const p = r.w / n;
+    const w = n / (n + SHRINK_K);
+    return (w * p) + ((1 - w) * 0.50);
+  }
+
+  // Convert Boise vs Utah map matchup into Boise win probability.
+  // If both have data, compare their shrunk rates. If one missing, use other's shrunk vs 0.50.
+  function boiseWinProbOnMap(map){
+    const b = shrunkWinProb("Boise", map);
+    const u = shrunkWinProb("Utah", map);
+    // Interpret as relative strength; turn into probability via logistic-ish transform:
+    // p = 0.5 + (b - u) * scale
+    const scale = 0.80; // tune: keeps probabilities reasonable
+    let p = 0.5 + (b - u) * scale;
+    p = Math.max(0.05, Math.min(0.95, p));
+    return p;
+  }
+
+  // -----------------------------
+  // Veto state machine (BO3)
+  // Sequence:
+  // Ban1 (Team A), Ban1 (Team B),
+  // Pick1 (Team A), Side for Pick1,
+  // Pick1 (Team B), Side for Pick2,
+  // Ban2 (Team A), Ban2 (Team B),
+  // Decider = remaining map, Side choice for decider to coin-loser
+  // -----------------------------
+  const StepType = {
+    BAN: "BAN",
+    PICK: "PICK",
+    SIDE: "SIDE",
+    DONE: "DONE"
+  };
+
+  let state = null;
+
+  const $ = (id) => document.getElementById(id);
+
+  // -----------------------------
+  // Debug logging (copyable)
+  // -----------------------------
+  let __dbg = [];
+  function dbg(tag, data){
+    try{
+      const ts = new Date().toISOString();
+      const st = (typeof currentStep === 'function') ? currentStep() : null;
+      const snap = {
+        ts, tag,
+        stepIndex: state ? state.stepIndex : null,
+        step: st ? {type: st.type, team: st.team, label: st.label} : null,
+        data: data ?? null,
+      };
+      __dbg.push(snap);
+      // keep reasonable size
+      if(__dbg.length > 4000) __dbg = __dbg.slice(__dbg.length - 4000);
+      const box = document.getElementById('dbgBox');
+      if(box){ box.value = __dbg.map(x => JSON.stringify(x)).join('\n'); }
+    }catch(e){ /* ignore */ }
+  }
+  function getDbgText(){
+    return __dbg.map(x => JSON.stringify(x)).join('\n');
+  }
+  async function copyDbg(){
+    const txt = getDbgText();
+    const box = document.getElementById('dbgBox');
+    if(box){ box.style.display = 'block'; box.value = txt; }
+    try{
+      await navigator.clipboard.writeText(txt);
+      logLine('[debug] Copied debug log to clipboard.');
+    }catch(e){
+      // fallback: select textarea
+      if(box){
+        box.focus();
+        box.select();
+        logLine('[debug] Clipboard blocked. Debug log shown; select + copy manually.');
+      }
+    }
+  }
+
+  function logLine(text){
+    const el = $("log");
+    const div = document.createElement("div");
+    div.textContent = text;
+    el.appendChild(div);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function clearLog(){
+    $("log").innerHTML = "";
+  }
+
+  function teamName(key){ return key === "Boise" ? "Boise State" : "Utah"; }
+
+  function opponentOf(team){ return team === "Boise" ? "Utah" : "Boise"; }
+
+  
+  function isUserTeam(teamKey){
+    return state && teamKey === state.you;
+  }
+
+  function autoplayUntilUserTurn(){
+    if(!state) return;
+    // Keep taking actions for the non-user team until it's the user's turn or the veto is complete.
+    while(true){
+      dbg('autoplay:tick', {available: state ? Array.from(state.available) : null});
+      const st = currentStep();
+      if(!st) break;
+      if(st.type === StepType.DONE) { maybeFinalize(true); break; }
+      // If it's user's turn to act on BAN/PICK/SIDE, stop.
+      if(st.team && st.team === state.you) break;
+
+      // Otherwise, it's opponent. Autoplay their step.
+      if(st.type === StepType.BAN || st.type === StepType.PICK){
+        const m = autoChoiceFor(st);
+        if(!m) break;
+        if(st.type === StepType.BAN) doBan(st.team, m);
+        else doPick(st.team, m);
+
+        // Inline advance without recursion to avoid double autoplay loops
+        state.stepIndex = Math.min(state.stepIndex + 1, state.steps.length - 1);
+
+        if(state.stepIndex === 8){
+          const remaining = Array.from(state.available);
+          const decMap = remaining[0];
+          state.decider = {map: decMap, sideChooserTeam: state.coinLoser, chosenSide: null};
+          state.available.delete(decMap);
+          dbg('decider:set', {map: decMap, sideChooserTeam: state.decider.sideChooserTeam});
+      logLine(`[decider] Remaining map is ${decMap}. Side choice goes to ${teamName(state.decider.sideChooserTeam)}.`);
+          injectDeciderSideControls();
+        }
+
+        render();
+        continue;
+      }
+
+      if(st.type === StepType.SIDE){
+        dbg('autoplay:side', {team: st.team, stepIndex: state.stepIndex});
+        // Decider side step
+        if(state.decider && state.stepIndex >= 8){
+          const t = state.decider.sideChooserTeam;
+          if(!state.decider.chosenSide){
+            const s = autoChooseSide(t, state.decider.map, true);
+            state.decider.chosenSide = s;
+            logLine(`[side] ${teamName(t)} chooses ${s} start on decider ${state.decider.map}.`);
+          }
+          state.stepIndex = Math.min(state.stepIndex + 1, state.steps.length - 1);
+          render();
+          continue;
+        } else {
+          const t = st.team;
+          const pending = [...state.picks].reverse().find(p => !p.startSide);
+          if(pending){
+            const s = autoChooseSide(t, pending.map, false);
+            pending.startSide = s;
+            pending.sideChooserTeam = t;
+            logLine(`[side] ${teamName(t)} chooses ${s} start on ${pending.map}.`);
+          }
+          state.stepIndex = Math.min(state.stepIndex + 1, state.steps.length - 1);
+
+          if(state.stepIndex === 8){
+            const remaining = Array.from(state.available);
+            const decMap = remaining[0];
+            state.decider = {map: decMap, sideChooserTeam: state.coinLoser, chosenSide: null};
+            state.available.delete(decMap);
+            logLine(`[decider] Remaining map is ${decMap}. Side choice goes to ${teamName(state.decider.sideChooserTeam)}.`);
+            injectDeciderSideControls();
+          }
+
+          render();
+          continue;
+        }
+      }
+
+      break;
+    }
+    maybeFinalize(false);
+  }
+function initVeto(){
+    const you = $("youTeam").value;
+    const them = opponentOf(you);
+
+    // coin flip
+    const pref = $("coinPref").value;
+    let coinWinner;
+    if(pref === "you") coinWinner = you;
+    else if(pref === "them") coinWinner = them;
+    else coinWinner = (Math.random() < 0.5) ? "Boise" : "Utah";
+
+    // coin winner chooses ban order, but if "youTeam" doesn't match coin winner,
+    // we still apply the selected choice only if you are the coin winner; otherwise opponent defaults to banfirst.
+    let banOrderChoice = "banfirst";
+    const yourChoice = $("banFirstChoice").value;
+    if(coinWinner === you) banOrderChoice = yourChoice;
+    else banOrderChoice = "banfirst";
+
+    // Determine ban order: who bans first?
+    const banFirstTeam = (banOrderChoice === "banfirst") ? coinWinner : opponentOf(coinWinner);
+    const banSecondTeam = opponentOf(banFirstTeam);
+
+    dbg('initVeto:start', {you, them, coinWinner, banOrderChoice});
+
+    state = {
+      you,
+      them,
+      coinWinner,
+      coinLoser: opponentOf(coinWinner),
+      banFirstTeam,
+      banSecondTeam,
+      available: new Set(MAPS),
+      banned: [],
+      picks: [], // {map, pickerTeam, startSide}
+      decider: null, // {map, sideChooserTeam, chosenSide}
+      steps: [], // filled below
+      stepIndex: 0
+    };
+
+    state.steps = [
+      {type:StepType.BAN, team: state.banFirstTeam, label:"Ban 1"},
+      {type:StepType.BAN, team: state.banSecondTeam, label:"Ban 1"},
+      {type:StepType.PICK, team: state.banFirstTeam, label:"Pick 1"},
+      {type:StepType.SIDE, team: state.banSecondTeam, label:"Side (Pick 1)"},
+      {type:StepType.PICK, team: state.banSecondTeam, label:"Pick 2"},
+      {type:StepType.SIDE, team: state.banFirstTeam, label:"Side (Pick 2)"},
+      {type:StepType.BAN, team: state.banFirstTeam, label:"Ban 2"},
+      {type:StepType.BAN, team: state.banSecondTeam, label:"Ban 2"},
+      // decider computed after these
+      {type:StepType.SIDE, team: state.coinLoser, label:"Side (Decider)"},
+      {type:StepType.DONE, team: null, label:"Done"}
+    ];
+
+    // UI updates
+    clearLog();
+    $("outcome").textContent = "Complete the veto to declare a winner.";
+    $("summary").textContent = "—";
+    $("coinLabel").textContent = teamName(state.coinWinner);
+    dbg('initVeto:state', {banFirstTeam, banSecondTeam, coinLoser: state.coinLoser});
+    logLine(`[coin] Winner: ${teamName(state.coinWinner)}. Ban order: ${teamName(state.banFirstTeam)} bans first.`);
+    render();
+    autoplayUntilUserTurn();
+  }
+
+  function currentStep(){
+    if(!state) return null;
+    return state.steps[state.stepIndex];
+  }
+
+  function setStepLabel(){
+    if(!state){ $("stepLabel").textContent = "Not started"; return; }
+    const st = currentStep();
+    if(!st){ $("stepLabel").textContent = "—"; return; }
+    if(st.type === StepType.DONE){
+      $("stepLabel").textContent = "Complete";
+      return;
+    }
+    $("stepLabel").textContent = `${st.label}: ${teamName(st.team)}`;
+  }
+
+  function mapStatus(map){
+    if(!state) return "available";
+    if(state.banned.includes(map)) return "banned";
+    for(const p of state.picks){
+      if(p.map === map) return "picked";
+    }
+    if(state.decider && state.decider.map === map) return "picked";
+    if(!state.available.has(map)) return "disabled";
+    return "available";
+  }
+
+  function render(){
+    setStepLabel();
+
+    // map list
+    const list = $("mapList");
+    list.innerHTML = "";
+
+    const st = currentStep();
+    const actionText = getActionHint(st);
+    $("actionHint").textContent = actionText || "";
+
+    $("poolHint").textContent = state ? `Pool: ${Array.from(state.available).join(", ")}` : "Start a veto to begin";
+
+    for(const map of MAPS){
+      const s = mapStatus(map);
+      const chip = document.createElement("div");
+      chip.className = `map ${s === "banned" ? "banned" : s === "picked" ? "picked" : ""} ${s === "disabled" ? "disabled" : ""}`;
+      chip.textContent = map;
+      chip.title = getMapTooltip(map);
+      chip.onclick = () => onMapClick(map);
+      list.appendChild(chip);
+    }
+
+    // summary
+    if(state){
+      const lines = [];
+      lines.push(`<span class="mono">Bans</span>: ${state.banned.length ? state.banned.join(", ") : "—"}`);
+      lines.push(`<span class="mono">Picks</span>: ${state.picks.length ? state.picks.map(p => `${p.map} (${teamName(p.pickerTeam)} pick, ${p.startSide || "side?"})`).join(" · ") : "—"}`);
+      if(state.decider){
+        lines.push(`<span class="mono">Decider</span>: ${state.decider.map} (${teamName(state.decider.sideChooserTeam)} chose ${state.decider.chosenSide || "side?"})`);
+      } else {
+        lines.push(`<span class="mono">Decider</span>: —`);
+      }
+      $("summary").innerHTML = lines.join("<br/>");
+    }
+  }
+
+  function getMapTooltip(map){
+    const b = winRate("Boise", map);
+    const u = winRate("Utah", map);
+    const bTxt = (b == null) ? "unknown" : `${Math.round(b*100)}%`;
+    const uTxt = (u == null) ? "unknown" : `${Math.round(u*100)}%`;
+    const p = boiseWinProbOnMap(map);
+    return `Boise winrate: ${bTxt} | Utah winrate: ${uTxt} | Model Boise win prob: ${Math.round(p*100)}%`;
+  }
+
+  function getActionHint(st){
+    if(!state) return "";
+    if(!st) return "";
+    if(st.type === StepType.BAN) return `Click a map to BAN as ${teamName(st.team)}.`;
+    if(st.type === StepType.PICK) return `Click a map to PICK as ${teamName(st.team)}.`;
+    if(st.type === StepType.SIDE){
+      const who = teamName(st.team);
+      const which =
+        state.decider && !state.decider.chosenSide && state.stepIndex >= 8
+          ? `Choose starting side for the decider as ${who}.`
+          : `Choose starting side for the map just picked by the opponent of ${who}.`;
+      return which + " Use the side buttons below the log after you pick a map.";
+    }
+    if(st.type === StepType.DONE) return "Veto complete.";
+    return "";
+  }
+
+  function onMapClick(map){
+    if(!state) return;
+    const st = currentStep();
+    if(!st) return;
+
+    // Only allow user input on the user's own turn; opponent turns are auto-played.
+    if(st.team && st.team !== state.you){
+      return;
+    }
+
+    if(st.type !== StepType.BAN && st.type !== StepType.PICK) return;
+
+    // must be available
+    if(!state.available.has(map)) return;
+
+    // can't pick/bann already used
+    if(state.banned.includes(map)) return;
+    if(state.picks.some(p => p.map === map)) return;
+
+    if(st.type === StepType.BAN){
+      doBan(st.team, map);
+      advance();
+      return;
+    }
+
+    if(st.type === StepType.PICK){
+      doPick(st.team, map);
+      // after pick, we remain on SIDE step next; show side controls immediately
+      advance();
+      return;
+    }
+  }
+
+  function doBan(team, map){
+    state.available.delete(map);
+    state.banned.push(map);
+    dbg('ban', {team, map});
+    logLine(`[ban] ${teamName(team)} bans ${map}.`);
+  }
+
+  function doPick(team, map){
+    state.available.delete(map);
+    state.picks.push({map, pickerTeam: team, startSide: null, sideChooserTeam: null});
+    dbg('pick', {team, map});
+    logLine(`[pick] ${teamName(team)} picks ${map}.`);
+    injectSideControls(opponentOf(team), map);
+  }
+
+  function injectSideControls(team, map){
+    // Only render side controls for the user; opponent sides are auto-selected.
+    if(state && team !== state.you){ return; }
+
+    // Replace/append a little side control UI into the log area, so the hint is actionable.
+    const log = $("log");
+    const wrap = document.createElement("div");
+    wrap.style.marginTop = "10px";
+    wrap.style.marginBottom = "8px";
+
+    const label = document.createElement("div");
+    label.className = "t";
+    label.textContent = `[side] ${teamName(team)} choose starting side for ${map}:`;
+    wrap.appendChild(label);
+
+    const row = document.createElement("div");
+    row.className = "sidepick";
+
+    const mkBtn = (side) => {
+      const b = document.createElement("button");
+      b.className = "sidebtn";
+      b.textContent = side;
+      b.onclick = () => chooseSideForLastPick(team, map, side);
+      return b;
+    };
+
+    row.appendChild(mkBtn("Attack"));
+    row.appendChild(mkBtn("Defense"));
+
+    wrap.appendChild(row);
+    log.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function chooseSideForLastPick(team, map, side){
+    if(!state) return;
+    const st = currentStep();
+
+    // Find the most recent pick by this team on that map that lacks a side.
+    const p = state.picks.find(x => x.map === map && !x.startSide);
+    if(p){
+      p.startSide = side;
+      p.sideChooserTeam = team;
+      logLine(`[side] ${teamName(team)} chooses ${side} start on ${map}.`);
+      // Advance only if we are currently expecting a SIDE choice for this team's pick
+      const step = currentStep();
+      if(step && step.type === StepType.SIDE && step.team === team){
+        advance();
+      }
+      render();
+      maybeFinalize();
+      return;
+    }
+
+    // If it's decider side choice
+    if(state.decider && state.decider.map && state.decider.sideChooserTeam === team && !state.decider.chosenSide){
+      state.decider.chosenSide = side;
+      logLine(`[side] ${teamName(team)} chooses ${side} start on decider ${state.decider.map}.`);
+      // If we are on decider side step, advance
+      const step = currentStep();
+      if(step && step.type === StepType.SIDE && step.team === team){
+        advance();
+      }
+      render();
+      maybeFinalize();
+      return;
+    }
+  }
+
+  function advance(){
+    dbg('advance:before', {stepIndex: state.stepIndex});
+    // If advancing into decider side step, compute decider when bans/picks done.
+    state.stepIndex = Math.min(state.stepIndex + 1, state.steps.length - 1);
+
+    // If we just completed Ban2 for both teams (stepIndex moved to 8),
+    // determine decider as remaining available map (should be 1).
+    if(state.stepIndex === 8){
+      const remaining = Array.from(state.available);
+      const decMap = remaining[0];
+      state.decider = {map: decMap, sideChooserTeam: state.coinLoser, chosenSide: null};
+      state.available.delete(decMap);
+      logLine(`[decider] Remaining map is ${decMap}. Side choice goes to ${teamName(state.decider.sideChooserTeam)}.`);
+      injectDeciderSideControls();
+    }
+
+    render();
+    maybeFinalize();
+    autoplayUntilUserTurn();
+  }
+
+  function injectDeciderSideControls(){
+    // Only render decider side controls if user is the chooser
+    if(state && state.decider && state.decider.sideChooserTeam !== state.you){ return; }
+
+    const t = state.decider.sideChooserTeam;
+    const map = state.decider.map;
+
+    const log = $("log");
+    const wrap = document.createElement("div");
+    wrap.style.marginTop = "10px";
+    wrap.style.marginBottom = "8px";
+
+    const label = document.createElement("div");
+    label.className = "t";
+    label.textContent = `[side] ${teamName(t)} choose starting side for decider ${map}:`;
+    wrap.appendChild(label);
+
+    const row = document.createElement("div");
+    row.className = "sidepick";
+
+    const mkBtn = (side) => {
+      const b = document.createElement("button");
+      b.className = "sidebtn";
+      b.textContent = side;
+      b.onclick = () => chooseSideForLastPick(t, map, side);
+      return b;
+    };
+    row.appendChild(mkBtn("Attack"));
+    row.appendChild(mkBtn("Defense"));
+    wrap.appendChild(row);
+    log.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function autoChoiceFor(step){
+    const team = step.team;
+    const pool = Array.from(state.available);
+
+    if(step.type === "BAN"){
+      const rank = (team === "Boise") ? boiseBanRank : utahBanRank;
+      pool.sort((a,b)=> (rank[a] ?? 999) - (rank[b] ?? 999));
+      return pool[0];
+    }
+
+    if(step.type === "PICK"){
+      const rank = (team === "Boise") ? boisePrefRank : utahPickRank;
+      pool.sort((a,b)=> (rank[a] ?? 999) - (rank[b] ?? 999));
+      return pool[0];
+    }
+    return null;
+  }
+
+  function autoChooseSide(team, map){
+    const them = (team === "Boise") ? "Utah" : "Boise";
+    const pTeam = shrunkWinProb(team, map);
+    const pOpp  = shrunkWinProb(them, map);
+    if(team === "Boise" && map === "Bind") return "Attack";
+    if(team === "Utah" && map === "Abyss") return "Defense";
+    if(pTeam >= pOpp) return "Defense";
+    return "Attack";
+  }
+
+  function autoComplete(){
+    if(!state) return;
+
+    while(true){
+      const st = currentStep();
+      if(!st) break;
+
+      if(st.type === "DONE"){
+        maybeFinalize(true);
+        break;
+      }
+
+      if(st.type === "BAN" || st.type === "PICK"){
+        const m = autoChoiceFor(st);
+        if(!m) break;
+        if(st.type === "BAN") doBan(st.team, m);
+        else doPick(st.team, m);
+        advance();
+        continue;
+      }
+
+      if(st.type === "SIDE"){
+        if(state.decider && state.stepIndex >= 8){
+          const t = state.decider.sideChooserTeam;
+          if(!state.decider.chosenSide){
+            const s = autoChooseSide(t, state.decider.map);
+            state.decider.chosenSide = s;
+            logLine(`[side] ${teamName(t)} chooses ${s} start on decider ${state.decider.map}.`);
+          }
+          advance();
+          continue;
+        } else {
+          const t = st.team;
+          const pending = [...state.picks].reverse().find(p => !p.startSide);
+          if(pending){
+            const s = autoChooseSide(t, pending.map);
+            pending.startSide = s;
+            pending.sideChooserTeam = t;
+            logLine(`[side] ${teamName(t)} chooses ${s} start on ${pending.map}.`);
+          }
+          advance();
+          continue;
+        }
+      }
+      break;
+    }
+    render();
+    maybeFinalize(true);
+  }
+
+  function buildSeriesOrder(){
+    const pick1 = state.picks.find(p => p.pickerTeam === state.banFirstTeam) || state.picks[0];
+    const pick2 = state.picks.find(p => p.pickerTeam === state.banSecondTeam) || state.picks[1];
+
+    return [
+      {map: pick1.map, picker: pick1.pickerTeam, startSide: pick1.startSide, sideChooserTeam: pick1.sideChooserTeam, isDecider:false},
+      {map: pick2.map, picker: pick2.pickerTeam, startSide: pick2.startSide, sideChooserTeam: pick2.sideChooserTeam, isDecider:false},
+      {map: state.decider.map, sideChooser: state.decider.sideChooserTeam, chooserSide: state.decider.chosenSide, isDecider:true}
+    ];
+  }
+
+  function simulateSeriesOutcome(series){
+    const perMap = series.map((g, idx) => {
+      let pBoise = boiseWinProbOnMap(g.map);
+
+      let chooser = g.isDecider ? g.sideChooser : g.sideChooserTeam;
+
+      if(chooser === "Boise") pBoise = Math.min(0.95, pBoise + SIDE_BONUS);
+      if(chooser === "Utah")  pBoise = Math.max(0.05, pBoise - SIDE_BONUS);
+
+      if(!g.isDecider && g.picker === "Boise"){
+        const r = boisePrefRank[g.map] ?? 7;
+        const bump = (8 - r) * 0.004;
+        pBoise = Math.min(0.95, pBoise + bump);
+      }
+      if(!g.isDecider && g.picker === "Utah"){
+        const r = utahPickRank[g.map] ?? 7;
+        const bump = (8 - r) * 0.004;
+        pBoise = Math.max(0.05, pBoise - bump);
+      }
+
+      const roll = Math.random();
+      const winner = (roll < pBoise) ? "Boise" : "Utah";
+      return { index: idx+1, map: g.map, pBoise, roll, winner, chooser };
+    });
+
+    let bWins = 0, uWins = 0;
+    const decided = [];
+    for(const m of perMap){
+      decided.push(m);
+      if(m.winner === "Boise") bWins++;
+      else uWins++;
+      if(bWins === 2 || uWins === 2) break;
+    }
+    const seriesWinner = (bWins > uWins) ? "Boise" : "Utah";
+
+    const p1 = perMap[0].pBoise, p2 = perMap[1].pBoise, p3 = perMap[2].pBoise;
+    const ev = (p1*p2) + (p1*(1-p2)*p3) + ((1-p1)*p2*p3);
+
+    return { perMap: decided, fullPerMap: perMap, bWins, uWins, seriesWinner, evBoiseMatchWin: ev };
+  }
+
+  function renderOutcome(res, series){
+    const winnerName = teamName(res.seriesWinner);
+    const you = state.you;
+    const youWon = (res.seriesWinner === you);
+    const cls = youWon ? "win" : "lose";
+    const evPct = Math.round(res.evBoiseMatchWin * 100);
+
+    const gamesHtml = res.perMap.map(m => {
+      const w = teamName(m.winner);
+      const p = Math.round(m.pBoise * 100);
+      const chooser = teamName(m.chooser);
+      return `<div class="mono">Map ${m.index}: ${m.map} · Winner: <strong>${w}</strong> · Model Boise win: ${p}% · Side chooser: ${chooser}</div>`;
+    }).join("");
+
+    const seriesOrder = series.map((g, i) => {
+      if(!g.isDecider){
+        return `<div class="mono">Order ${i+1}: ${g.map} (picked by ${teamName(g.picker)}; side chosen by ${teamName(g.sideChooserTeam)}: ${g.startSide})</div>`;
+      } else {
+        return `<div class="mono">Order ${i+1}: ${g.map} (decider; side chosen by ${teamName(g.sideChooser)}: ${g.chooserSide})</div>`;
+      }
+    }).join("");
+
+    return `
+      <div class="${cls}">Winner: ${winnerName}</div>
+      <div class="small" style="margin-top:6px">Declared winner comes from a single simulated BO3 using the baked-in model and a random roll per map.</div>
+      <div class="hr"></div>
+      <div><strong>Series order</strong></div>
+      <div style="margin-top:6px">${seriesOrder}</div>
+      <div class="hr"></div>
+      <div><strong>Map-by-map</strong></div>
+      <div style="margin-top:6px">${gamesHtml}</div>
+      <div class="hr"></div>
+      <div class="mono">Model estimate: Boise match win probability (EV) ≈ <strong>${evPct}%</strong></div>
+      <div class="small" style="margin-top:6px">
+        Notes: Win rates are sample-shrunk toward 50% to reduce overconfidence. Side choice gives a small bonus. Preferences add a small comfort bump on picked maps.
+      </div>
+    `;
+  }
+
+  function maybeFinalize(force=false){
+    if(!state) return;
+
+    const picksOk = state.picks.length === 2 && state.picks.every(p => !!p.startSide);
+    const decOk = state.decider && !!state.decider.map && !!state.decider.chosenSide;
+
+    if(!(picksOk && decOk)){
+      if(!force) return;
+    }
+
+    const series = buildSeriesOrder();
+    const result = simulateSeriesOutcome(series);
+
+    $("outcome").innerHTML = renderOutcome(result, series);
+  }
+
+  function resetAll(){
+    state = null;
+    clearLog();
+    $("coinLabel").textContent = "—";
+    $("stepLabel").textContent = "Not started";
+    $("summary").textContent = "—";
+    $("poolHint").textContent = "Start a veto to begin";
+    $("actionHint").textContent = "";
+    $("outcome").textContent = "Complete the veto to declare a winner.";
+    $("mapList").innerHTML = "";
+  }
+
+  $("startBtn").addEventListener("click", () => initVeto());
+  $("autoBtn").addEventListener("click", () => {
+    if(!state) initVeto();
+    autoComplete();
+  });
+  $("resetBtn").addEventListener("click", () => resetAll());
+  const cdbg = document.getElementById('copyDbgBtn');
+  if(cdbg){ cdbg.addEventListener('click', () => copyDbg()); }
+
+
+  resetAll();
+})();
+</script>
+</body>
+</html>
