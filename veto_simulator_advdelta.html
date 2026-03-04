@@ -1,0 +1,989 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Valorant Veto + Side Simulator (AdvΔ)</title>
+  <style>
+    :root{
+      --bg:#0b0f17;
+      --text:#e8eefc;
+      --muted:#a9b7d1;
+      --accent:#7aa2ff;
+      --good:#46d39a;
+      --warn:#ffcc66;
+      --bad:#ff6b6b;
+      --border:rgba(255,255,255,.08);
+      --shadow: 0 12px 32px rgba(0,0,0,.35);
+      --radius:14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background: radial-gradient(1200px 800px at 18% 12%, rgba(122,162,255,.12), transparent 55%),
+                  radial-gradient(1200px 800px at 82% 22%, rgba(70,211,154,.08), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+      font-family:var(--sans);
+      line-height:1.35;
+    }
+    header{ padding:22px 18px 14px; max-width:1200px; margin:0 auto; }
+    h1{ margin:0 0 6px; font-size:20px; letter-spacing:.2px; font-weight:750; }
+    .sub{ color:var(--muted); font-size:13px; max-width:980px; overflow-wrap:anywhere; }
+
+    main{
+      max-width:1200px;
+      margin:0 auto;
+      padding:10px 18px 26px;
+      display:grid;
+      grid-template-columns: minmax(0,420px) minmax(0,1fr);
+      gap:14px;
+    }
+    @media (max-width: 980px){ main{grid-template-columns:1fr} }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      min-width:0;
+    }
+    .hd{
+      padding:12px 14px 10px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      min-width:0;
+    }
+    .title{ font-weight:700; font-size:14px; letter-spacing:.2px; }
+    .bd{ padding:12px 14px 14px; min-width:0; }
+
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    /* Prevent long labels/controls from overflowing into the next column */
+    .grid2 > *{ min-width:0; }
+    @media (max-width:980px){ .grid2{grid-template-columns:1fr} }
+
+    label{ font-size:12px; color:var(--muted); display:block; margin-bottom:6px; overflow-wrap:anywhere; }
+    input, button, textarea, select{ font-family:inherit; font-size:14px; }
+    input[type="text"], textarea, select, button{
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: rgba(10,14,22,.55);
+      color:var(--text);
+      padding:10px 12px;
+      outline:none;
+      max-width:100%;
+    }
+    textarea{ width:100%; resize:vertical; min-height:130px; }
+    select{ min-width: 0; width:100%; }
+
+    button{ cursor:pointer; transition: transform .03s ease, border-color .2s ease, background .2s ease; font-weight:700; }
+    button:hover{border-color: rgba(122,162,255,.45)}
+    button:active{transform: translateY(1px)}
+    button.primary{ background: linear-gradient(180deg, rgba(122,162,255,.28), rgba(122,162,255,.12)); border-color: rgba(122,162,255,.38); }
+    button.ghost{ background: rgba(10,14,22,.35); }
+    button.danger{ background: linear-gradient(180deg, rgba(255,107,107,.24), rgba(255,107,107,.10)); border-color: rgba(255,107,107,.35); }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.18);
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .pill strong{color:var(--text); font-weight:800}
+
+    .hint,.small{ font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
+    .hint{ margin-top:8px; }
+    .mono{ font-family:var(--mono); }
+    .hr{ height:1px; background: var(--border); margin:12px 0; }
+
+    .score{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .scorebox{ border:1px solid var(--border); border-radius:12px; padding:10px 12px; background: rgba(0,0,0,.18); }
+    .scorebox .n{font-size:12px;color:var(--muted)}
+    .scorebox .v{font-size:20px;font-weight:900;margin-top:2px; overflow-wrap:anywhere}
+
+    .maplist{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .map{
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.18);
+      border-radius:999px;
+      padding:7px 10px;
+      font-size:12px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .map:hover{border-color: rgba(122,162,255,.35)}
+    .map.disabled{ opacity:.35; cursor:not-allowed; text-decoration:line-through; }
+    .map.picked{ border-color: rgba(70,211,154,.42); background: rgba(70,211,154,.12); }
+    .map.banned{ border-color: rgba(255,107,107,.42); background: rgba(255,107,107,.10); text-decoration:line-through; }
+
+    .log{
+      padding:10px 12px;
+      border-radius:12px;
+      background: rgba(0,0,0,.22);
+      border:1px solid var(--border);
+      max-height: 380px;
+      overflow:auto;
+      font-family: var(--mono);
+      font-size:12px;
+      color: rgba(232,238,252,.92);
+      line-height:1.4;
+      overflow-wrap:anywhere;
+    }
+    .log .t{ color:var(--muted); }
+
+    .stepbox{ background: rgba(0,0,0,.18); border:1px solid var(--border); border-radius:12px; padding:10px 12px; min-width:0; }
+    .stepname{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
+    .stepname .k{ font-weight:800; font-size:13px; }
+    .stepname .v{ font-size:12px; color:var(--muted); }
+
+    .sidepick{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    .sidebtn{ padding:8px 10px; border-radius:999px; font-size:12px; border:1px solid var(--border); background: rgba(10,14,22,.40); cursor:pointer; }
+
+    .table{ width:100%; border-collapse:collapse; font-size:12px; }
+    .table th,.table td{ border-bottom:1px solid var(--border); padding:8px 6px; text-align:left; vertical-align:top; overflow-wrap:anywhere; }
+    .table th{ color:var(--muted); font-weight:800; }
+    .right{ text-align:right; }
+
+    .win{ color:var(--good); font-weight:900; }
+    .lose{ color:var(--bad); font-weight:900; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Pick/Ban/Side Simulator: Boise State vs <span id="oppTitle">Opponent</span></h1>
+    <div class="sub">
+      Paste per-map <span class="mono">AdvΔ</span> values. Missing maps default to 0.<br/>
+      Win model: <span class="mono">p(Boise wins map) = clamp(0.50 + AdvΔ/100)</span>.
+      Map pool: <span class="mono">Abyss, Breeze, Bind, Corrode, Haven, Pearl, Split</span>.
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="hd">
+        <div class="title">Setup</div>
+        <span class="pill"><strong class="mono">BO3</strong><span class="t"> · 7-map pool</span></span>
+      </div>
+      <div class="bd">
+        <div class="grid2">
+          <div>
+            <label for="oppName">Opponent name</label>
+            <input id="oppName" type="text" value="Utah" />
+            <div class="hint">Label only (used in headers/logs).</div>
+          </div>
+          <div>
+            <label for="youTeam">You are</label>
+            <select id="youTeam">
+              <option value="Boise">Boise State</option>
+              <option value="Opponent">Opponent</option>
+            </select>
+            <div class="hint">Opponent actions are auto-played when it isn't your turn.</div>
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:12px;">
+          <div>
+            <label for="coinPref">Coin flip behavior</label>
+            <select id="coinPref">
+              <option value="random">Random coin flip (recommended)</option>
+              <option value="you">Force you win coin flip</option>
+              <option value="them">Force opponent win coin flip</option>
+            </select>
+            <div class="hint">Coin flip winner chooses whether to ban first (default behavior).</div>
+          </div>
+          <div>
+            <label for="banFirstChoice">If you win coin flip, you choose</label>
+            <select id="banFirstChoice">
+              <option value="banfirst">Ban first</option>
+              <option value="bansecond">Ban second</option>
+            </select>
+            <div class="hint">This sets the veto order.</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label for="deltaBox">Advantage Delta input (paste lines like: <span class="mono">Abyss 6.544444444</span>)</label>
+          <textarea id="deltaBox" spellcheck="false"></textarea>
+          <div class="hint">Map names are case-insensitive. Unknown maps are ignored.</div>
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <button id="applyBtn" class="ghost">Apply AdvΔ</button>
+          <button id="startBtn" class="primary">Start new veto</button>
+          <button id="autoBtn" class="ghost">Auto-complete (both teams)</button>
+          <button id="resetBtn" class="danger">Reset</button>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="score">
+          <div class="scorebox">
+            <div class="n">Current step</div>
+            <div class="v" id="stepLabel">Not started</div>
+          </div>
+          <div class="scorebox">
+            <div class="n">Coin flip winner</div>
+            <div class="v" id="coinLabel">—</div>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="stepbox">
+          <div class="stepname">
+            <div class="k">Parsed AdvΔ</div>
+            <div class="v">AdvΔ → p(Boise)</div>
+          </div>
+          <div id="deltaTable" class="small">Paste deltas and click Apply.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="hd">
+        <div class="title">Veto Board</div>
+        <div class="pill"><strong>Click maps</strong><span class="t"> · action-driven</span></div>
+      </div>
+      <div class="bd">
+        <div class="stepbox">
+          <div class="stepname">
+            <div class="k">Available maps</div>
+            <div class="v" id="poolHint">Start a veto to begin</div>
+          </div>
+          <div class="maplist" id="mapList"></div>
+          <div class="small" id="actionHint"></div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="stepbox">
+          <div class="stepname">
+            <div class="k">Log</div>
+            <div class="v">Veto history</div>
+          </div>
+          <div class="log" id="log"></div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="stepbox">
+          <div class="stepname">
+            <div class="k">Outcome</div>
+            <div class="v">Declared at conclusion</div>
+          </div>
+          <div id="outcome" class="small">Complete the veto to declare a winner.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<script>
+(() => {
+  const MAPS = ["Abyss","Breeze","Bind","Corrode","Haven","Pearl","Split"];
+
+  const boisePickRank = { Corrode:1, Abyss:2, Split:3, Pearl:4, Haven:5, Bind:6, Breeze:7 };
+  const oppPickRank   = { Corrode:1, Abyss:2, Haven:3, Bind:4, Pearl:5, Split:6, Breeze:7 };
+  const boiseBanRank  = { Breeze:1, Bind:2, Haven:3, Pearl:4, Split:5, Abyss:6, Corrode:7 };
+  const oppBanRank    = { Breeze:1, Split:2, Haven:3, Bind:4, Pearl:5, Abyss:6, Corrode:7 };
+
+  const SIDE_BONUS = 0.02;
+  const StepType = { BAN:"BAN", PICK:"PICK", SIDE:"SIDE", DONE:"DONE" };
+
+  let state = null;
+  let advDelta = Object.fromEntries(MAPS.map(m => [m, 0]));
+
+  const $ = (id) => document.getElementById(id);
+
+  function clamp(x, lo, hi){ return Math.max(lo, Math.min(hi, x)); }
+
+  function escapeHtml(str){
+    return String(str)
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/\"/g,"&quot;")
+      .replace(/'/g,"&#39;");
+  }
+
+  function teamName(key){
+    if(key === "Boise") return "Boise State";
+    return (state && state.oppName) ? state.oppName : "Opponent";
+  }
+
+  function opponentOf(team){ return team === "Boise" ? "Opponent" : "Boise"; }
+
+  function setOpponentName(){
+    const nm = String($("oppName").value || "Opponent").trim() || "Opponent";
+    $("oppTitle").textContent = nm;
+    if(state) state.oppName = nm;
+  }
+
+  // p(Boise wins map) = clamp(0.50 + delta/100)
+  function boiseWinProbOnMap(map){
+    const d = advDelta[map] ?? 0;
+    return clamp(0.50 + (d / 100), 0.05, 0.95);
+  }
+
+  function formatDelta(x){
+    if(!Number.isFinite(x)) return "0";
+    const ax = Math.abs(x);
+    if(ax >= 100) return x.toFixed(2);
+    if(ax >= 10)  return x.toFixed(4);
+    if(ax >= 1)   return x.toFixed(6);
+    return x.toFixed(8);
+  }
+
+  function canonicalMapName(raw){
+    if(!raw) return null;
+    const t = String(raw).trim().toLowerCase();
+    for(const m of MAPS){ if(m.toLowerCase() === t) return m; }
+    return null;
+  }
+
+  function splitWs(s){
+    return String(s).trim().split(/\s+/g).filter(Boolean);
+  }
+
+  function parseDeltaBox(text){
+    const next = Object.fromEntries(MAPS.map(m => [m, 0]));
+    const warnings = [];
+
+    const cleaned = String(text || "").replace(/\r/g,"");
+    const lines = cleaned.split("\n");
+
+    for(const line of lines){
+      const s = line.trim();
+      if(!s) continue;
+
+      const parts = splitWs(s);
+      if(parts.length < 2){
+        warnings.push(`Ignored line (needs map + number): "${line}"`);
+        continue;
+      }
+
+      const map = canonicalMapName(parts[0]);
+      const v = Number(parts[parts.length - 1]);
+
+      if(!map){
+        warnings.push(`Ignored line (map not in pool): "${line}"`);
+        continue;
+      }
+      if(!Number.isFinite(v)){
+        warnings.push(`Ignored line (number parse failed): "${line}"`);
+        continue;
+      }
+
+      next[map] = v;
+    }
+
+    return { next, warnings };
+  }
+
+  function renderDeltaTable(warnings){
+    const rows = MAPS.map(m => {
+      const d = advDelta[m] ?? 0;
+      const p = boiseWinProbOnMap(m);
+      return { map: m, d, p };
+    });
+
+    const warnHtml = (warnings && warnings.length)
+      ? `<div class="small" style="margin-bottom:8px;color:var(--warn)">${warnings.map(w => `• ${escapeHtml(w)}`).join("<br/>")}</div>`
+      : "";
+
+    $("deltaTable").innerHTML = `
+      ${warnHtml}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Map</th>
+            <th class="right">AdvΔ</th>
+            <th class="right">p(Boise)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr>
+              <td class="mono">${escapeHtml(r.map)}</td>
+              <td class="right mono">${formatDelta(r.d)}</td>
+              <td class="right mono">${Math.round(r.p * 100)}%</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function applyDeltas(){
+    const parsed = parseDeltaBox($("deltaBox").value);
+    advDelta = parsed.next;
+    renderDeltaTable(parsed.warnings);
+    render();
+  }
+
+  function logLine(text){
+    const el = $("log");
+    const div = document.createElement("div");
+    div.textContent = text;
+    el.appendChild(div);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function clearLog(){ $("log").innerHTML = ""; }
+
+  function remainingMapsFromHistory(){
+    if(!state) return [];
+    const used = new Set();
+    for(const m of (state.banned || [])) used.add(m);
+    for(const p of (state.picks || [])) used.add(p.map);
+    if(state.decider && state.decider.map) used.add(state.decider.map);
+    return MAPS.filter(m => !used.has(m));
+  }
+
+  function injectDeciderSideControls(){
+    if(state && state.decider && state.decider.sideChooserTeam !== state.you) return;
+
+    const t = state.decider.sideChooserTeam;
+    const map = state.decider.map;
+
+    const log = $("log");
+    const wrap = document.createElement("div");
+    wrap.style.marginTop = "10px";
+    wrap.style.marginBottom = "8px";
+
+    const label = document.createElement("div");
+    label.className = "t";
+    label.textContent = `[side] ${teamName(t)} choose starting side for decider ${map}:`;
+    wrap.appendChild(label);
+
+    const row = document.createElement("div");
+    row.className = "sidepick";
+
+    function mk(side){
+      const b = document.createElement("button");
+      b.className = "sidebtn";
+      b.textContent = side;
+      b.onclick = () => chooseSideForLastPick(t, map, side);
+      return b;
+    }
+
+    row.appendChild(mk("Attack"));
+    row.appendChild(mk("Defense"));
+
+    wrap.appendChild(row);
+    log.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function ensureDecider(){
+    if(!state) return;
+    if(state.decider && state.decider.map) return;
+
+    let remaining = Array.from(state.available || []);
+    if(remaining.length !== 1){
+      remaining = remainingMapsFromHistory();
+    }
+
+    if(remaining.length >= 1){
+      const decMap = remaining[0];
+      state.decider = { map: decMap, sideChooserTeam: state.coinLoser, chosenSide: null };
+      if(state.available) state.available.delete(decMap);
+      logLine(`[decider] Remaining map is ${decMap}. Side choice goes to ${teamName(state.decider.sideChooserTeam)}.`);
+      injectDeciderSideControls();
+    }
+  }
+
+  function currentStep(){
+    if(!state) return null;
+    return state.steps[state.stepIndex];
+  }
+
+  function setStepLabel(){
+    if(!state){ $("stepLabel").textContent = "Not started"; return; }
+    const st = currentStep();
+    if(!st){ $("stepLabel").textContent = "—"; return; }
+    if(st.type === StepType.DONE){ $("stepLabel").textContent = "Complete"; return; }
+    $("stepLabel").textContent = `${st.label}: ${teamName(st.team)}`;
+  }
+
+  function mapStatus(map){
+    if(!state) return "available";
+    if(state.banned.includes(map)) return "banned";
+    for(const p of state.picks){ if(p.map === map) return "picked"; }
+    if(state.decider && state.decider.map === map) return "picked";
+    if(!state.available.has(map)) return "disabled";
+    return "available";
+  }
+
+  function getMapTooltip(map){
+    const d = advDelta[map] ?? 0;
+    const p = boiseWinProbOnMap(map);
+    return `AdvΔ: ${formatDelta(d)} | p(Boise) ≈ ${Math.round(p*100)}%`;
+  }
+
+  function getActionHint(st){
+    if(!state || !st) return "";
+    if(st.type === StepType.BAN) return `Click a map to BAN as ${teamName(st.team)}.`;
+    if(st.type === StepType.PICK) return `Click a map to PICK as ${teamName(st.team)}.`;
+    if(st.type === StepType.SIDE) return `Choose starting side as ${teamName(st.team)} (buttons appear in the log).`;
+    if(st.type === StepType.DONE) return "Veto complete.";
+    return "";
+  }
+
+  function render(){
+    setOpponentName();
+    setStepLabel();
+
+    const st = currentStep();
+    $("actionHint").textContent = getActionHint(st);
+    $("poolHint").textContent = state ? `Pool: ${Array.from(state.available).join(", ")}` : "Start a veto to begin";
+
+    const list = $("mapList");
+    list.innerHTML = "";
+
+    for(const map of MAPS){
+      const s = mapStatus(map);
+      const chip = document.createElement("div");
+      chip.className = `map ${s === "banned" ? "banned" : s === "picked" ? "picked" : ""} ${s === "disabled" ? "disabled" : ""}`;
+      chip.textContent = map;
+      chip.title = getMapTooltip(map);
+      chip.onclick = () => onMapClick(map);
+      list.appendChild(chip);
+    }
+  }
+
+  function doBan(team, map){
+    state.available.delete(map);
+    state.banned.push(map);
+    logLine(`[ban] ${teamName(team)} bans ${map}.`);
+  }
+
+  function injectSideControls(team, map){
+    if(state && team !== state.you) return;
+
+    const log = $("log");
+    const wrap = document.createElement("div");
+    wrap.style.marginTop = "10px";
+    wrap.style.marginBottom = "8px";
+
+    const label = document.createElement("div");
+    label.className = "t";
+    label.textContent = `[side] ${teamName(team)} choose starting side for ${map}:`;
+    wrap.appendChild(label);
+
+    const row = document.createElement("div");
+    row.className = "sidepick";
+
+    function mk(side){
+      const b = document.createElement("button");
+      b.className = "sidebtn";
+      b.textContent = side;
+      b.onclick = () => chooseSideForLastPick(team, map, side);
+      return b;
+    }
+
+    row.appendChild(mk("Attack"));
+    row.appendChild(mk("Defense"));
+
+    wrap.appendChild(row);
+    log.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function doPick(team, map){
+    state.available.delete(map);
+    state.picks.push({ map, pickerTeam: team, startSide: null, sideChooserTeam: null });
+    logLine(`[pick] ${teamName(team)} picks ${map}.`);
+    injectSideControls(opponentOf(team), map);
+  }
+
+  function chooseSideForLastPick(team, map, side){
+    if(!state) return;
+
+    const p = state.picks.find(x => x.map === map && !x.startSide);
+    if(p){
+      p.startSide = side;
+      p.sideChooserTeam = team;
+      logLine(`[side] ${teamName(team)} chooses ${side} start on ${map}.`);
+
+      const step = currentStep();
+      if(step && step.type === StepType.SIDE && step.team === team) advance();
+      render();
+      maybeFinalize();
+      return;
+    }
+
+    if(state.decider && state.decider.map && state.decider.sideChooserTeam === team && !state.decider.chosenSide){
+      state.decider.chosenSide = side;
+      logLine(`[side] ${teamName(team)} chooses ${side} start on decider ${state.decider.map}.`);
+
+      const step = currentStep();
+      if(step && step.type === StepType.SIDE && step.team === team) advance();
+      render();
+      maybeFinalize();
+      return;
+    }
+  }
+
+  function advance(){
+    state.stepIndex = Math.min(state.stepIndex + 1, state.steps.length - 1);
+    if(state.stepIndex >= 8) ensureDecider();
+    render();
+    maybeFinalize();
+    autoplayUntilUserTurn();
+  }
+
+  function autoChoiceFor(step){
+    const team = step.team;
+    const pool = Array.from(state.available);
+
+    if(step.type === StepType.BAN){
+      const rank = (team === "Boise") ? boiseBanRank : oppBanRank;
+      pool.sort((a,b)=> (rank[a] ?? 999) - (rank[b] ?? 999));
+      return pool[0];
+    }
+
+    if(step.type === StepType.PICK){
+      const rank = (team === "Boise") ? boisePickRank : oppPickRank;
+      pool.sort((a,b)=> (rank[a] ?? 999) - (rank[b] ?? 999));
+      return pool[0];
+    }
+
+    return null;
+  }
+
+  function autoChooseSide(team, map){
+    const p = boiseWinProbOnMap(map);
+    if(team === "Boise") return (p >= 0.5) ? "Defense" : "Attack";
+    return (p >= 0.5) ? "Attack" : "Defense";
+  }
+
+  function autoplayUntilUserTurn(){
+    if(!state) return;
+
+    while(true){
+      const st = currentStep();
+      if(!st) break;
+
+      if(st.type === StepType.DONE){
+        maybeFinalize(true);
+        break;
+      }
+
+      if(st.team && st.team === state.you) break;
+
+      if(st.type === StepType.BAN || st.type === StepType.PICK){
+        const m = autoChoiceFor(st);
+        if(!m) break;
+        if(st.type === StepType.BAN) doBan(st.team, m);
+        else doPick(st.team, m);
+
+        state.stepIndex = Math.min(state.stepIndex + 1, state.steps.length - 1);
+        if(state.stepIndex >= 8) ensureDecider();
+        render();
+        continue;
+      }
+
+      if(st.type === StepType.SIDE){
+        if(state.decider && state.stepIndex >= 8){
+          const t = state.decider.sideChooserTeam;
+          if(!state.decider.chosenSide){
+            const s = autoChooseSide(t, state.decider.map);
+            state.decider.chosenSide = s;
+            logLine(`[side] ${teamName(t)} chooses ${s} start on decider ${state.decider.map}.`);
+          }
+          state.stepIndex = Math.min(state.stepIndex + 1, state.steps.length - 1);
+          render();
+          continue;
+        } else {
+          const t = st.team;
+          const pending = state.picks.slice().reverse().find(p => !p.startSide);
+          if(pending){
+            const s = autoChooseSide(t, pending.map);
+            pending.startSide = s;
+            pending.sideChooserTeam = t;
+            logLine(`[side] ${teamName(t)} chooses ${s} start on ${pending.map}.`);
+          }
+          state.stepIndex = Math.min(state.stepIndex + 1, state.steps.length - 1);
+          if(state.stepIndex >= 8) ensureDecider();
+          render();
+          continue;
+        }
+      }
+
+      break;
+    }
+
+    maybeFinalize(false);
+  }
+
+  function buildSeriesOrder(){
+    const pick1 = state.picks[0];
+    const pick2 = state.picks[1];
+
+    return [
+      { map: pick1.map, picker: pick1.pickerTeam, startSide: pick1.startSide, sideChooserTeam: pick1.sideChooserTeam, isDecider:false },
+      { map: pick2.map, picker: pick2.pickerTeam, startSide: pick2.startSide, sideChooserTeam: pick2.sideChooserTeam, isDecider:false },
+      { map: state.decider.map, sideChooser: state.decider.sideChooserTeam, chooserSide: state.decider.chosenSide, isDecider:true }
+    ];
+  }
+
+  function simulateSeriesOutcome(series){
+    const perMap = series.map((g, idx) => {
+      let pBoise = boiseWinProbOnMap(g.map);
+
+      const chooser = g.isDecider ? g.sideChooser : g.sideChooserTeam;
+      if(chooser === "Boise") pBoise = clamp(pBoise + SIDE_BONUS, 0.05, 0.95);
+      if(chooser === "Opponent") pBoise = clamp(pBoise - SIDE_BONUS, 0.05, 0.95);
+
+      if(!g.isDecider && g.picker === "Boise"){
+        const r = boisePickRank[g.map] ?? 7;
+        pBoise = clamp(pBoise + (8 - r) * 0.004, 0.05, 0.95);
+      }
+      if(!g.isDecider && g.picker === "Opponent"){
+        const r = oppPickRank[g.map] ?? 7;
+        pBoise = clamp(pBoise - (8 - r) * 0.004, 0.05, 0.95);
+      }
+
+      const roll = Math.random();
+      const winner = (roll < pBoise) ? "Boise" : "Opponent";
+      return { index: idx+1, map: g.map, pBoise, roll, winner, chooser };
+    });
+
+    let bWins = 0, oWins = 0;
+    const decided = [];
+    for(const m of perMap){
+      decided.push(m);
+      if(m.winner === "Boise") bWins++; else oWins++;
+      if(bWins === 2 || oWins === 2) break;
+    }
+
+    const seriesWinner = (bWins > oWins) ? "Boise" : "Opponent";
+
+    const p1 = perMap[0].pBoise, p2 = perMap[1].pBoise, p3 = perMap[2].pBoise;
+    const ev = (p1*p2) + (p1*(1-p2)*p3) + ((1-p1)*p2*p3);
+
+    return { perMap: decided, seriesWinner, evBoiseMatchWin: ev };
+  }
+
+  function renderOutcome(res, series){
+    const winnerName = teamName(res.seriesWinner);
+    const youWon = (res.seriesWinner === state.you);
+    const cls = youWon ? "win" : "lose";
+    const evPct = Math.round(res.evBoiseMatchWin * 100);
+
+    const seriesOrder = series.map((g, i) => {
+      if(!g.isDecider){
+        return `<div class="mono">Order ${i+1}: ${g.map} (picked by ${teamName(g.picker)}; side chosen by ${teamName(g.sideChooserTeam)}: ${g.startSide})</div>`;
+      }
+      return `<div class="mono">Order ${i+1}: ${g.map} (decider; side chosen by ${teamName(g.sideChooser)}: ${g.chooserSide})</div>`;
+    }).join("");
+
+    const gamesHtml = res.perMap.map(m => {
+      const w = teamName(m.winner);
+      const p = Math.round(m.pBoise * 100);
+      const chooser = teamName(m.chooser);
+      const d = advDelta[m.map] ?? 0;
+      return `<div class="mono">Map ${m.index}: ${m.map} · AdvΔ ${formatDelta(d)} · p(Boise) ${p}% · Winner: <strong>${w}</strong> · Side chooser: ${chooser}</div>`;
+    }).join("");
+
+    return `
+      <div class="${cls}">Winner: ${winnerName}</div>
+      <div class="small" style="margin-top:6px">Winner comes from a single simulated BO3 using your AdvΔ-driven probabilities (with a small side bonus).</div>
+      <div class="hr"></div>
+      <div><strong>Series order</strong></div>
+      <div style="margin-top:6px">${seriesOrder}</div>
+      <div class="hr"></div>
+      <div><strong>Map-by-map</strong></div>
+      <div style="margin-top:6px">${gamesHtml}</div>
+      <div class="hr"></div>
+      <div class="mono">Model estimate: Boise match win probability (EV) ≈ <strong>${evPct}%</strong></div>
+    `;
+  }
+
+  function maybeFinalize(force){
+    if(!state) return;
+
+    const picksOk = state.picks.length === 2 && state.picks.every(p => !!p.startSide);
+    const decOk = state.decider && !!state.decider.map && !!state.decider.chosenSide;
+
+    if(!(picksOk && decOk)){
+      if(!force) return;
+    }
+
+    const series = buildSeriesOrder();
+    const result = simulateSeriesOutcome(series);
+    $("outcome").innerHTML = renderOutcome(result, series);
+  }
+
+  function onMapClick(map){
+    if(!state) return;
+    const st = currentStep();
+    if(!st) return;
+
+    if(st.team && st.team !== state.you) return;
+
+    if(st.type !== StepType.BAN && st.type !== StepType.PICK) return;
+    if(!state.available.has(map)) return;
+
+    if(st.type === StepType.BAN) doBan(st.team, map);
+    else doPick(st.team, map);
+
+    advance();
+  }
+
+  function initVeto(){
+    setOpponentName();
+
+    const you = $("youTeam").value;
+    const them = opponentOf(you);
+
+    const pref = $("coinPref").value;
+    let coinWinner;
+    if(pref === "you") coinWinner = you;
+    else if(pref === "them") coinWinner = them;
+    else coinWinner = (Math.random() < 0.5) ? "Boise" : "Opponent";
+
+    let banOrderChoice = "banfirst";
+    const yourChoice = $("banFirstChoice").value;
+    if(coinWinner === you) banOrderChoice = yourChoice;
+
+    const banFirstTeam = (banOrderChoice === "banfirst") ? coinWinner : opponentOf(coinWinner);
+    const banSecondTeam = opponentOf(banFirstTeam);
+
+    state = {
+      oppName: String($("oppName").value || "Opponent").trim() || "Opponent",
+      you,
+      them,
+      coinWinner,
+      coinLoser: opponentOf(coinWinner),
+      banFirstTeam,
+      banSecondTeam,
+      available: new Set(MAPS),
+      banned: [],
+      picks: [],
+      decider: null,
+      stepIndex: 0,
+      steps: [
+        {type:StepType.BAN, team: banFirstTeam,  label:"Ban 1"},
+        {type:StepType.BAN, team: banSecondTeam, label:"Ban 1"},
+        {type:StepType.PICK, team: banFirstTeam, label:"Pick 1"},
+        {type:StepType.SIDE, team: banSecondTeam, label:"Side (Pick 1)"},
+        {type:StepType.PICK, team: banSecondTeam, label:"Pick 2"},
+        {type:StepType.SIDE, team: banFirstTeam, label:"Side (Pick 2)"},
+        {type:StepType.BAN, team: banFirstTeam, label:"Ban 2"},
+        {type:StepType.BAN, team: banSecondTeam, label:"Ban 2"},
+        {type:StepType.SIDE, team: opponentOf(coinWinner), label:"Side (Decider)"},
+        {type:StepType.DONE, team:null, label:"Done"}
+      ]
+    };
+
+    clearLog();
+    $("outcome").textContent = "Complete the veto to declare a winner.";
+    $("coinLabel").textContent = teamName(state.coinWinner);
+    logLine(`[coin] Winner: ${teamName(state.coinWinner)}. Ban order: ${teamName(state.banFirstTeam)} bans first.`);
+    render();
+    autoplayUntilUserTurn();
+  }
+
+  $("applyBtn").addEventListener("click", applyDeltas);
+  $("oppName").addEventListener("input", () => { setOpponentName(); render(); });
+
+  $("startBtn").addEventListener("click", () => { applyDeltas(); initVeto(); });
+  $("autoBtn").addEventListener("click", () => {
+    applyDeltas();
+    if(!state) initVeto();
+
+    while(true){
+      const st = currentStep();
+      if(!st) break;
+      if(st.type === StepType.DONE){ maybeFinalize(true); break; }
+
+      if(st.type === StepType.BAN || st.type === StepType.PICK){
+        const m = autoChoiceFor(st);
+        if(!m) break;
+        if(st.type === StepType.BAN) doBan(st.team, m);
+        else doPick(st.team, m);
+        advance();
+        continue;
+      }
+
+      if(st.type === StepType.SIDE){
+        if(state.decider && state.stepIndex >= 8){
+          const t = state.decider.sideChooserTeam;
+          if(!state.decider.chosenSide){
+            const s = autoChooseSide(t, state.decider.map);
+            state.decider.chosenSide = s;
+            logLine(`[side] ${teamName(t)} chooses ${s} start on decider ${state.decider.map}.`);
+          }
+          advance();
+          continue;
+        }
+
+        const t = st.team;
+        const pending = state.picks.slice().reverse().find(p => !p.startSide);
+        if(pending){
+          const s = autoChooseSide(t, pending.map);
+          pending.startSide = s;
+          pending.sideChooserTeam = t;
+          logLine(`[side] ${teamName(t)} chooses ${s} start on ${pending.map}.`);
+        }
+        advance();
+        continue;
+      }
+
+      break;
+    }
+
+    render();
+    maybeFinalize(true);
+  });
+
+  $("resetBtn").addEventListener("click", () => {
+    state = null;
+    clearLog();
+    $("coinLabel").textContent = "—";
+    $("stepLabel").textContent = "Not started";
+    $("poolHint").textContent = "Start a veto to begin";
+    $("actionHint").textContent = "";
+    $("outcome").textContent = "Complete the veto to declare a winner.";
+    $("mapList").innerHTML = "";
+    setOpponentName();
+  });
+
+  // Seed example deltas
+  $("deltaBox").value = [
+    "Abyss 6.544444444",
+    "Breeze 13.14444444",
+    "Bind 6",
+    "Corrode 12.13636364",
+    "Haven 21.97777778",
+    "Pearl 5.144444444",
+    "Split 0"
+  ].join("\n");
+
+  setOpponentName();
+  applyDeltas();
+
+  // initial UI
+  $("coinLabel").textContent = "—";
+  $("stepLabel").textContent = "Not started";
+  $("poolHint").textContent = "Start a veto to begin";
+  $("actionHint").textContent = "";
+  $("outcome").textContent = "Complete the veto to declare a winner.";
+  render();
+})();
+</script>
+</body>
+</html>
